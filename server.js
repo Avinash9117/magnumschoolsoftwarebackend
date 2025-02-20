@@ -18,22 +18,13 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(bodyParser.json());
 
-// // MySQL Connection Configuration
-// const connection = mysql.createConnection({
-//   host: 'localhost',
-//   port: 3306,
-//   user: 'root',
-//   password: 'Avinash143@', // Use your MySQL password here
-//   database: 'schooldb', // Ensure the database name is correct
-// });
-
 // MySQL Connection Configuration
 const connection = mysql.createConnection({
-  host: 'sql8.freesqldatabase.com',
+  host: 'localhost',
   port: 3306,
-  user: 'sql8763452',
-  password: 't5PWXBq78G', // Use your MySQL password here
-  database: 'sql8763452', // Ensure the database name is correct
+  user: 'root',
+  password: 'Avinash143@', // Use your MySQL password here
+  database: 'schooldb', // Ensure the database name is correct
 });
 
 // Connect to the MySQL database
@@ -323,7 +314,7 @@ app.get('/api/getTeachers', async (req, res) => {
     const teachersWithPhotoURL = teachers.map(teacher => {
       return {
         ...teacher,
-        photo: teacher.photo ? `https://magnumschooldashboardbackend-mn7ci9uu8.vercel.app/${teacher.photo}` : null,
+        photo: teacher.photo ? `http://localhost:5000/${teacher.photo}` : null,
       };
     });
 
@@ -376,7 +367,7 @@ app.get('/api/getStudents', async (req, res) => {
       const studentsWithPhotoURL = result.map(student => {
         return {
           ...student,
-          photo: student.photo ? `https://magnumschooldashboardbackend-mn7ci9uu8.vercel.app/${student.photo}` : null,
+          photo: student.photo ? `http://localhost:5000/${student.photo}` : null,
         };
       });
 
@@ -431,7 +422,7 @@ app.get('/api/getParents', async (req, res) => {
       const parentsWithPhotoURL = result.map(parent => {
         return {
           ...parent,
-          photo: parent.photo ? `https://magnumschooldashboardbackend-mn7ci9uu8.vercel.app/${parent.photo}` : null,
+          photo: parent.photo ? `${parent.photo}` : null,
         };
       });
 
@@ -1435,6 +1426,96 @@ app.delete("/api/deleteParent/:id", async (req, res) => {
   }
 });
 
+
+// ✅ GET: Fetch unique classes & sections for dropdowns
+app.get('/api/getClassesAndSections', (req, res) => {
+  const query = `SELECT DISTINCT Class, section FROM students`;
+
+  connection.query(query, (error, results) => {
+    if (error) {
+      console.error('❌ Error fetching classes and sections:', error);
+      return res.status(500).json({ success: false, message: 'Server error fetching classes' });
+    }
+
+    if (!results.length) {
+      return res.status(404).json({ success: false, message: 'No classes found' });
+    }
+
+    // Format data into an object
+    const formattedData = results.reduce((acc, row) => {
+      if (!acc[row.Class]) {
+        acc[row.Class] = [];
+      }
+      acc[row.Class].push(row.section);
+      return acc;
+    }, {});
+
+    res.status(200).json({ success: true, classes: formattedData });
+  });
+});
+
+// ✅ POST: Add student attendance
+app.post('/api/addAttendance', (req, res) => {
+  const { studentId, attendanceDate, attendanceStatus } = req.body;
+
+  if (!studentId || !attendanceDate || !attendanceStatus) {
+    return res.status(400).json({ success: false, message: 'All fields are required' });
+  }
+
+  const query = `
+    INSERT INTO attendance (studentId, attendanceDate, attendanceStatus)
+    VALUES (?, ?, ?)
+  `;
+
+  connection.query(query, [studentId, attendanceDate, attendanceStatus], (error) => {
+    if (error) {
+      console.error('❌ Error adding attendance:', error);
+      return res.status(500).json({ success: false, message: 'Server error adding attendance' });
+    }
+
+    res.status(200).json({ success: true, message: 'Attendance recorded successfully' });
+  });
+});
+
+// ✅ GET: Fetch attendance records
+app.get('/api/getAttendance', (req, res) => {
+  connection.query('SELECT * FROM attendance', (error, results) => {
+    if (error) {
+      console.error('❌ Error fetching attendance records:', error);
+      return res.status(500).json({ success: false, message: 'Server error fetching attendance records' });
+    }
+
+    if (!results.length) {
+      return res.status(404).json({ success: false, message: 'No attendance records found' });
+    }
+
+    res.status(200).json({ success: true, attendance: results });
+  });
+});
+
+// ✅ GET: Fetch students based on Class & Section
+app.get('/api/students', (req, res) => {
+  const { class: className, section } = req.query;
+
+  if (!className || !section) {
+    return res.status(400).json({ success: false, message: 'Class and Section are required' });
+  }
+
+  const query = `SELECT * FROM students WHERE Class = ? AND section = ?`;
+
+  connection.query(query, [className, section], (error, results) => {
+    if (error) {
+      console.error('❌ Error fetching students:', error);
+      return res.status(500).json({ success: false, message: 'Server error fetching students' });
+    }
+
+    if (!results.length) {
+      return res.status(404).json({ success: false, message: 'No students found for this class and section' });
+    }
+
+    res.status(200).json({ success: true, students: results });
+  });
+});
 
 
 // Start the server
