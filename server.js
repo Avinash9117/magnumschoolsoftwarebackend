@@ -20,11 +20,11 @@ app.use(bodyParser.json());
 
 // MySQL Connection Configuration
 const connection = mysql.createConnection({
-  host: 'localhost',
+  host: 'sql8.freesqldatabase.com',
   port: 3306,
-  user: 'root',
-  password: 'Avinash143@', // Use your MySQL password here
-  database: 'schooldb', // Ensure the database name is correct
+  user: 'sql8763452',
+  password: 't5PWXBq78G', // Use your MySQL password here
+  database: 'sql8763452', // Ensure the database name is correct
 });
 
 // Connect to the MySQL database
