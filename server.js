@@ -18,13 +18,22 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(bodyParser.json());
 
+// // MySQL Connection Configuration
+// const connection = mysql.createConnection({
+//   host: 'localhost',
+//   port: 3306,
+//   user: 'root',
+//   password: 'Avinash143@', // Use your MySQL password here
+//   database: 'schooldb', // Ensure the database name is correct
+// });
+
 // MySQL Connection Configuration
 const connection = mysql.createConnection({
-  host: 'localhost',
+  host: 'sql8.freesqldatabase.com',
   port: 3306,
-  user: 'root',
-  password: 'Avinash143@', // Use your MySQL password here
-  database: 'schooldb', // Ensure the database name is correct
+  user: 'sql8763452',
+  password: 't5PWXBq78G', // Use your MySQL password here
+  database: 'sql8763452', // Ensure the database name is correct
 });
 
 // Connect to the MySQL database
@@ -314,7 +323,7 @@ app.get('/api/getTeachers', async (req, res) => {
     const teachersWithPhotoURL = teachers.map(teacher => {
       return {
         ...teacher,
-        photo: teacher.photo ? `http://localhost:5000/${teacher.photo}` : null,
+        photo: teacher.photo ? `https://magnumschooldashboardbackend-mn7ci9uu8.vercel.app/${teacher.photo}` : null,
       };
     });
 
@@ -367,7 +376,7 @@ app.get('/api/getStudents', async (req, res) => {
       const studentsWithPhotoURL = result.map(student => {
         return {
           ...student,
-          photo: student.photo ? `http://localhost:5000/${student.photo}` : null,
+          photo: student.photo ? `https://magnumschooldashboardbackend-mn7ci9uu8.vercel.app/${student.photo}` : null,
         };
       });
 
@@ -422,7 +431,7 @@ app.get('/api/getParents', async (req, res) => {
       const parentsWithPhotoURL = result.map(parent => {
         return {
           ...parent,
-          photo: parent.photo ? `http://localhost:5000/${parent.photo}` : null,
+          photo: parent.photo ? `https://magnumschooldashboardbackend-mn7ci9uu8.vercel.app/${parent.photo}` : null,
         };
       });
 
