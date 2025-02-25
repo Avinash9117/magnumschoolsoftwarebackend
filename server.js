@@ -317,18 +317,10 @@ app.post('/api/addTeacher', upload.single('photo'), async (req, res) => {
 // Endpoint to get all teachers with correct photo URLs
 app.get('/api/getTeachers', async (req, res) => {
   try {
-    const query = 'SELECT employeeId, CONCAT(firstName, lastName) AS name, gender, classname, section, address, phoneNumber, email, photo FROM teachers';
+    const query = 'SELECT employeeId, CONCAT(firstName,  lastName) AS name, gender, classname, section, address, phoneNumber, email, photo FROM teachers';
     const teachers = await executeQuery.executeQuery(query);
 
-    // Add full URL path to photo for frontend access
-    const teachersWithPhotoURL = teachers.map(teacher => {
-      return {
-        ...teacher,
-        photo: teacher.photo ? `http://localhost:5000/${teacher.photo}` : null,
-      };
-    });
-
-    res.status(200).json({ teachers: teachersWithPhotoURL });
+    res.status(200).json({ teachers: teachers });
   } catch (error) {
     console.error('Error fetching teachers:', error);
     res.status(500).json({ message: 'Error fetching teachers.' });
@@ -373,15 +365,7 @@ app.get('/api/getStudents', async (req, res) => {
         return res.status(500).json({ message: 'Error fetching students.' });
       }
 
-      // Add full URL path to photo for frontend access
-      const studentsWithPhotoURL = result.map(student => {
-        return {
-          ...student,
-          photo: student.photo ? `http://localhost:5000/${student.photo}` : null,
-        };
-      });
-
-      res.status(200).json({ students: studentsWithPhotoURL });
+      res.status(200).json({ students: result });
     });
   } catch (error) {
     console.error('Error fetching students:', error);
@@ -516,15 +500,7 @@ app.get('/api/getParents', async (req, res) => {
         return res.status(500).json({ message: 'Error fetching parents.' });
       }
 
-      // Add full URL path to photo for frontend access
-      const parentsWithPhotoURL = result.map(parent => {
-        return {
-          ...parent,
-          photo: parent.photo ? `${parent.photo}` : null,
-        };
-      });
-
-      res.status(200).json({ parents: parentsWithPhotoURL });
+      res.status(200).json({ parents: result });
     });
   } catch (error) {
     console.error('Error fetching parents:', error);
