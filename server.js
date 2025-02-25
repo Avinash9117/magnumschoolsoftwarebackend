@@ -295,7 +295,7 @@ app.post('/api/addTeacher', upload.single('photo'), async (req, res) => {
     const values = [
       firstName, lastName, gender, dob, employeeId, bloodGroup, religion, email, phoneNumber, address, classname, section, shortBio, photoPath,
     ];
-    
+
     await executeQuery.executeQuery(query, values);
     res.status(200).json({ message: 'Teacher added successfully!' });
   } catch (error) {
@@ -379,12 +379,100 @@ app.get('/api/getStudents', async (req, res) => {
   }
 });
 
+//update student 
+app.put('/api/updateStudent/:id', upload.single('photo'), async (req, res) => {
+  const { id } = req.params;
+  const { firstName, lastName, gender, dob, Roll, bloodGroup, religion, email, Class, section, Admission, phoneNumber, shortBio } = req.body;
+  const photoPath = req.file ? req.file.path : null;
+
+  // Fetch existing student record to keep non-updated values
+  connection.query(`SELECT * FROM students WHERE id = ?`, [id], (err, rows) => {
+    if (err) {
+      console.error('Error fetching student:', err);
+      return res.status(500).json({ message: 'Error fetching student data' });
+    }
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    const existingStudent = rows[0];
+
+    // Ensure we only update fields that have new values
+    const updatedStudent = {
+      firstName: firstName !== undefined && firstName !== '' ? firstName : existingStudent.firstName,
+      lastName: lastName !== undefined && lastName !== '' ? lastName : existingStudent.lastName,
+      gender: gender !== undefined && gender !== '' ? gender : existingStudent.gender,
+      dob: dob !== undefined && dob !== '' ? dob : existingStudent.dob,
+      Roll: Roll !== undefined && Roll !== '' ? Roll : existingStudent.Roll,
+      bloodGroup: bloodGroup !== undefined && bloodGroup !== '' ? bloodGroup : existingStudent.bloodGroup,
+      religion: religion !== undefined && religion !== '' ? religion : existingStudent.religion,
+      email: email !== undefined && email !== '' ? email : existingStudent.email,
+      Class: Class !== undefined && Class !== '' ? Class : existingStudent.Class,
+      section: section !== undefined && section !== '' ? section : existingStudent.section,
+      Admission: Admission !== undefined && Admission !== '' ? Admission : existingStudent.Admission,
+      phoneNumber: phoneNumber !== undefined && phoneNumber !== '' ? phoneNumber : existingStudent.phoneNumber,
+      shortBio: shortBio !== undefined && shortBio !== '' ? shortBio : existingStudent.shortBio,
+      photo: photoPath !== null ? photoPath : existingStudent.photo // Only update photo if new one is uploaded
+    };
+
+    const query = `
+      UPDATE students 
+      SET firstName = ?, lastName = ?, gender = ?, dob = ?, Roll = ?, bloodGroup = ?, religion = ?, email = ?, Class = ?, section = ?, Admission = ?, phoneNumber = ?, shortBio = ?, photo = ?
+      WHERE id = ?
+    `;
+
+    const values = [
+      updatedStudent.firstName, updatedStudent.lastName, updatedStudent.gender, updatedStudent.dob,
+      updatedStudent.Roll, updatedStudent.bloodGroup, updatedStudent.religion, updatedStudent.email,
+      updatedStudent.Class, updatedStudent.section, updatedStudent.Admission, updatedStudent.phoneNumber,
+      updatedStudent.shortBio, updatedStudent.photo, id
+    ];
+
+    connection.query(query, values, (err, result) => {
+      if (err) {
+        console.error('Error updating student:', err);
+        return res.status(500).json({ message: 'Database error' });
+      }
+      res.status(200).json({ message: 'Student updated successfully!' });
+    });
+  });
+});
+
+
+
+
+//delete student
+app.delete('/api/deleteStudent/:id', async (req, res) => {
+  const { id } = req.params;
+
+  if (!id) {
+    return res.status(400).json({ message: "Student ID is required" });
+  }
+
+  const query = `DELETE FROM students WHERE id = ?`;
+
+  connection.query(query, [id], (err, result) => {
+    if (err) {
+      console.error('Error deleting student:', err);
+      return res.status(500).json({ message: 'Database error: ' + err.message });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    res.status(200).json({ message: 'Student deleted successfully!' });
+  });
+});
+
+
 
 
 
 // Endpoint to add parent data
 app.post('/api/addParent', upload.single('photo'), async (req, res) => {
-  const { firstName, lastName, gender, occupation, idNumber, bloodGroup, religion, email, phoneNumber, address, shortBio,numChildren } = req.body;
+  const { firstName, lastName, gender, occupation, idNumber, bloodGroup, religion, email, phoneNumber, address, shortBio, numChildren } = req.body;
   const photoPath = req.file ? req.file.path : null;
 
   const query = `
@@ -393,7 +481,7 @@ app.post('/api/addParent', upload.single('photo'), async (req, res) => {
   `;
 
   const values = [
-    firstName, lastName, gender, occupation, idNumber, bloodGroup, religion, email, phoneNumber, address, shortBio, photoPath,numChildren,
+    firstName, lastName, gender, occupation, idNumber, bloodGroup, religion, email, phoneNumber, address, shortBio, photoPath, numChildren,
   ];
 
   connection.query(query, values, (err, result) => {
@@ -457,8 +545,8 @@ app.get('/api/studentsCount', async (req, res) => {
 app.get('/api/studentsCount', async (req, res) => {
   try {
     const query = "SELECT gender, COUNT(*) AS count FROM students GROUP BY gender";
-        console.log(query);
-    
+    console.log(query);
+
     const result = await executeQuery.executeQuery(query);
     console.log(result);
 
@@ -523,11 +611,11 @@ app.get('/api/examlist', async (req, res) => {
     // Query to fetch all exam details from the exam_schedule table
     const query = "SELECT * FROM exam_schedule";
     console.log(query);
-    
+
     const result = await executeQuery.executeQuery(query); // Execute the query
-    
+
     console.log(result); // Log the result for debugging
-    
+
     res.status(200).json(result); // Return the exam list data
   } catch (error) {
     console.error('Error fetching examlist:', error);
@@ -540,11 +628,11 @@ app.get('/api/notification', async (req, res) => {
     // Query to fetch all exam details from the notification table
     const query = "SELECT * FROM notices";
     console.log(query);
-    
+
     const result = await executeQuery.executeQuery(query); // Execute the query
-    
+
     console.log(result); // Log the result for debugging
-    
+
     res.status(200).json(result); // Return the exam list data
   } catch (error) {
     console.error('Error fetching notification:', error);
@@ -620,7 +708,7 @@ app.get('/api/getClassRoutine', async (req, res) => {
       WHERE className = ? AND section = ? AND date = ?
     `;
     const values = [className, section, date];
-    
+
     const classRoutine = await executeQuery.executeQuery(query, values);
 
     if (classRoutine.length === 0) {
@@ -671,7 +759,7 @@ app.get('/api/getExamList', async (req, res) => {
 // Add new grade
 app.post("/api/addExamGrade", async (req, res) => {
   console.log(req); // Form data (new grade)
-  console.log(req.body,"uygeuiywuf");
+  console.log(req.body, "uygeuiywuf");
   const { gradeName, gradePoint, percentFrom, percentUpto, comments } = req.body;
 
   try {
@@ -705,7 +793,7 @@ app.get("/api/getExamGrades", async (req, res) => {
 // Add new room (POST)
 app.post("/api/addRoom", async (req, res) => {
   console.log(req); // Form data (new grade)
-  console.log(req.body,"uygeuiywufbhbhj");
+  console.log(req.body, "uygeuiywufbhbhj");
   const { hostel, roomNo, roomtype, beds, cost } = req.body; // Extracting the room data from the request body
 
   try {
@@ -743,7 +831,7 @@ app.get("/api/getRooms", async (req, res) => {
 // Add new expense (POST)
 app.post("/api/addExpenses", async (req, res) => {
   console.log(req); // Form data (new expenses)
-  console.log(req.body,"uygeuiywufbhbhj");
+  console.log(req.body, "uygeuiywufbhbhj");
   const { name, idNo, expenseType, amount, phone, email, status, date } = req.body; // Extracting the expense data from the request body
 
   try {
@@ -792,7 +880,7 @@ app.post("/api/addRoutine", async (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     console.log(req); // Form data (new expenses)
-    console.log(req.body,"uygeuiywufbhbhj");
+    console.log(req.body, "uygeuiywufbhbhj");
     const values = [day, Class, Subject, section, teacher, time, date, subjectType, Code];
 
     // Use the connection object to query the database
@@ -813,7 +901,7 @@ app.post("/api/addRoutine", async (req, res) => {
 app.get("/api/getRoutines", async (req, res) => {
   try {
     const query = "SELECT * FROM class_routines";
-    
+
     // Use the connection object to query the database
     connection.query(query, (err, result) => {
       if (err) {
@@ -894,7 +982,7 @@ app.post("/api/addBook", upload.single("image"), async (req, res) => {
 app.get("/api/getBooks", async (req, res) => {
   try {
     const query = "SELECT * FROM books";
-    
+
     // Use the connection object to query the database
     connection.query(query, (err, result) => {
       if (err) {
@@ -939,7 +1027,7 @@ app.post("/api/addSubject", async (req, res) => {
 app.get("/api/getSubjects", async (req, res) => {
   try {
     const query = "SELECT * FROM subjects";
-    
+
     // Use the connection object to query the database
     connection.query(query, (err, result) => {
       if (err) {
@@ -966,7 +1054,7 @@ app.post("/api/deleteSubjects", async (req, res) => {
   try {
     // Create the SQL query to delete selected subjects based on their IDs
     const query = `DELETE FROM Subjects WHERE id IN (?)`;
-    
+
     // Execute the query
     connection.query(query, [ids], (err, result) => {
       if (err) {
@@ -1111,7 +1199,7 @@ app.post("/api/addusers", (req, res) => {
 app.get("/api/getusers", async (req, res) => {
   try {
     const query = "SELECT * FROM users"; // Query to fetch all users
-    
+
     // Use the connection object to query the database
     connection.query(query, (err, result) => {
       if (err) {
@@ -1129,17 +1217,17 @@ app.get("/api/getusers", async (req, res) => {
 //add Notice
 app.post("/api/addNotice", async (req, res) => {
   const { subject, details, postedTo, date } = req.body;
-  
+
   try {
     const query = `
       INSERT INTO notices (subject, details, postedTo, date)
       VALUES (?, ?, ?, ?)
     `;
     const values = [subject, details, postedTo, date];
-    
+
     // Execute the query to insert the new notice into the database
     await executeQuery.executeQuery(query, values);
-    
+
     res.status(200).json({ message: "Notice added successfully" });
   } catch (error) {
     console.error("Error adding notice:", error);
@@ -1151,7 +1239,7 @@ app.get("/api/getNotices", async (req, res) => {
   try {
     const query = "SELECT * FROM notices ";
     const notices = await executeQuery.executeQuery(query);
-    
+
     res.status(200).json(notices);  // Send back the notices data
   } catch (error) {
     console.error("Error fetching notices:", error);
@@ -1301,11 +1389,20 @@ app.post('/api/leave', upload.array('supportingDocs'), async (req, res) => {
 
   // SQL query to insert leave request
   const query = `
-    INSERT INTO leave_requests (teacher, leavetype, duration, fromdate, todate)
-    VALUES (?, ?, ?, ?, ? )
+    INSERT INTO leave_requests (teacher, leaveType, duration, fromDate, toDate, reason, supporting_docs, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
 
-  const values = [teacher, leaveType, duration, fromDate, toDate];
+  const values = [
+    teacher,
+    leaveType,
+    duration,
+    fromDate,
+    toDate,
+    reason,
+    JSON.stringify(supportingDocs), // Convert array to JSON string
+    'Pending', // Default status
+  ];
 
   try {
     const [result] = await connection.promise().query(query, values);
@@ -1315,6 +1412,7 @@ app.post('/api/leave', upload.array('supportingDocs'), async (req, res) => {
     res.status(500).json({ message: 'Error submitting leave request.' });
   }
 });
+
 
 // Route to fetch all leave requests
 app.get('/api/leaveRequests', async (req, res) => {
@@ -1454,28 +1552,118 @@ app.get('/api/getClassesAndSections', (req, res) => {
   });
 });
 
-// ✅ POST: Add student attendance
-app.post('/api/addAttendance', (req, res) => {
-  const { studentId, attendanceDate, attendanceStatus } = req.body;
+// ✅ POST: Add/Update multiple student attendance records
+app.post('/api/addAttendance', async (req, res) => {
+  const attendanceRecords = req.body;
 
-  if (!studentId || !attendanceDate || !attendanceStatus) {
-    return res.status(400).json({ success: false, message: 'All fields are required' });
+  if (!Array.isArray(attendanceRecords) || attendanceRecords.length === 0) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Attendance records must be an array and cannot be empty' 
+    });
   }
 
-  const query = `
-    INSERT INTO attendance (studentId, attendanceDate, attendanceStatus)
-    VALUES (?, ?, ?)
-  `;
+  try {
+    // Convert the connection.query to Promise
+    const query = (sql, values) => {
+      return new Promise((resolve, reject) => {
+        connection.query(sql, values, (error, results) => {
+          if (error) reject(error);
+          else resolve(results);
+        });
+      });
+    };
 
-  connection.query(query, [studentId, attendanceDate, attendanceStatus], (error) => {
-    if (error) {
-      console.error('❌ Error adding attendance:', error);
-      return res.status(500).json({ success: false, message: 'Server error adding attendance' });
+    // First, check for existing records
+    const recordPairs = attendanceRecords.map(({ Roll, attendanceDate }) => [Roll, attendanceDate]);
+    
+    // Modified query to handle multiple pairs
+    const checkQuery = `
+      SELECT Roll, DATE_FORMAT(attendanceDate, '%Y-%m-%d') as attendanceDate 
+      FROM attendance 
+      WHERE CONCAT(Roll, '-', DATE_FORMAT(attendanceDate, '%Y-%m-%d')) IN (?)
+    `;
+
+    const pairs = recordPairs.map(([roll, date]) => `${roll}-${date}`);
+    
+    const existingRecords = await query(checkQuery, [pairs]);
+
+    // Create a Set of existing "Roll-Date" combinations for easy lookup
+    const existingSet = new Set(
+      existingRecords.map(record => `${record.Roll}-${record.attendanceDate}`)
+    );
+
+    // Separate records into updates and inserts
+    const recordsToUpdate = [];
+    const recordsToInsert = [];
+
+    attendanceRecords.forEach(record => {
+      const key = `${record.Roll}-${record.attendanceDate}`;
+      if (existingSet.has(key)) {
+        recordsToUpdate.push(record);
+      } else {
+        recordsToInsert.push(record);
+      }
+    });
+
+    // Process updates
+    if (recordsToUpdate.length > 0) {
+      const updatePromises = recordsToUpdate.map(record => {
+        const updateQuery = `
+          UPDATE attendance 
+          SET attendanceStatus = ? 
+          WHERE Roll = ? AND attendanceDate = ?
+        `;
+        return query(updateQuery, [
+          record.attendanceStatus,
+          record.Roll,
+          record.attendanceDate
+        ]);
+      });
+
+      await Promise.all(updatePromises);
     }
 
-    res.status(200).json({ success: true, message: 'Attendance recorded successfully' });
-  });
+    // Process inserts
+    if (recordsToInsert.length > 0) {
+      const insertQuery = `
+        INSERT INTO attendance (Roll, attendanceDate, attendanceStatus)
+        VALUES ?
+      `;
+
+      const values = recordsToInsert.map(({ Roll, attendanceDate, attendanceStatus }) => 
+        [Roll, attendanceDate, attendanceStatus]
+      );
+
+      await query(insertQuery, [values]);
+    }
+
+    // Send response after all operations are complete
+    res.status(200).json({ 
+      success: true, 
+      message: 'Attendance records processed successfully',
+      updated: recordsToUpdate.length,
+      inserted: recordsToInsert.length
+    });
+
+  } catch (error) {
+    console.error('❌ Error processing attendance records:', error);
+    
+    // Send appropriate error message based on the error type
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({
+        success: false,
+        message: 'Duplicate attendance record found. Please refresh and try again.'
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error processing attendance records' 
+    });
+  }
 });
+
 
 // ✅ GET: Fetch attendance records
 app.get('/api/getAttendance', (req, res) => {
@@ -1495,15 +1683,20 @@ app.get('/api/getAttendance', (req, res) => {
 
 // ✅ GET: Fetch students based on Class & Section
 app.get('/api/students', (req, res) => {
-  const { class: className, section } = req.query;
+  const { class: className, section, date } = req.query;
 
   if (!className || !section) {
     return res.status(400).json({ success: false, message: 'Class and Section are required' });
   }
 
-  const query = `SELECT * FROM students WHERE Class = ? AND section = ?`;
-
-  connection.query(query, [className, section], (error, results) => {
+  const query = `
+  SELECT s.Roll, CONCAT(s.firstName, ' ', s.lastName) AS fullName, 
+         COALESCE(a.attendanceStatus, 'Absent') AS attendanceStatus
+  FROM students s
+  LEFT JOIN attendance a ON s.Roll = a.Roll AND a.attendanceDate = ?
+  WHERE s.Class = ? AND s.section = ?
+`;
+connection.query(query, [date, className, section], (error, results) => {
     if (error) {
       console.error('❌ Error fetching students:', error);
       return res.status(500).json({ success: false, message: 'Server error fetching students' });
@@ -1514,6 +1707,70 @@ app.get('/api/students', (req, res) => {
     }
 
     res.status(200).json({ success: true, students: results });
+  });
+});
+
+
+// ✅ GET: Fetch attendance records for teachers
+app.get('/api/getTeacherAttendance', (req, res) => {
+  const { date } = req.query;
+
+  if (!date) {
+    return res.status(400).json({ success: false, message: 'Date is required' });
+  }
+
+  const query = `
+    SELECT 
+      t.employeeId, 
+      CONCAT(t.firstName, ' ', t.lastName) AS name, 
+      t.classname AS classname,  -- Use 'classname' instead of 'subject' or 'department'
+      COALESCE(ta.attendanceStatus, 'absent') AS attendanceStatus
+    FROM teachers t
+    LEFT JOIN teacher_attendance ta 
+      ON t.employeeId = ta.employeeId 
+      AND ta.attendanceDate = ?
+  `;
+
+  connection.query(query, [date], (error, results) => {
+    if (error) {
+      console.error('❌ Error fetching teacher attendance records:', error);
+      return res.status(500).json({ success: false, message: 'Server error fetching teacher attendance records' });
+    }
+
+    if (!results.length) {
+      return res.status(404).json({ success: false, message: 'No attendance records found for the specified date' });
+    }
+
+    res.status(200).json({ success: true, attendance: results });
+  });
+});
+
+
+// ✅ POST: Mark teacher attendance
+app.post('/api/markTeacherAttendance', (req, res) => {
+  const { employeeId, attendanceDate, attendanceStatus } = req.body;
+
+  // Validate required fields
+  if (!employeeId || !attendanceDate || !attendanceStatus) {
+    return res.status(400).json({ success: false, message: 'Employee ID, Date, and Attendance Status are required' });
+  }
+
+  // Query to insert or update attendance
+  const query = `
+    INSERT INTO teacher_attendance (employeeId, attendanceDate, attendanceStatus)
+    VALUES (?, ?, ?)
+    ON DUPLICATE KEY UPDATE attendanceStatus = ?
+  `;
+
+  // Execute the query
+  connection.query(query, [employeeId, attendanceDate, attendanceStatus, attendanceStatus], (error, results) => {
+    if (error) {
+      console.error('❌ Error marking teacher attendance:', error);
+      return res.status(500).json({ success: false, message: 'Server error marking teacher attendance' });
+    }
+
+    // Success response
+    res.status(200).json({ success: true, message: 'Attendance marked successfully' });
   });
 });
 
