@@ -19,22 +19,32 @@ app.use(cors());
 app.use(bodyParser.json());
 
 // MySQL Connection Configuration
-const connection = mysql.createConnection({
+const pool = mysql.createPool({
  host: 'sql8.freesqldatabase.com',
   port: 3306,
   user: 'sql8764671',
   password: 'vEfPMw1bWy', // Use your MySQL password here
   database: 'sql8764671', // Ensure the database name is correct
+  waitForConnections: true, // Wait for a connection if none are available
+  connectionLimit: 10, // Maximum number of connections in the pool
+  queueLimit: 0, // Unlimited queue for waiting connections
+  enableKeepAlive: true, // Enable keep-alive to prevent connection timeouts
+  keepAliveInitialDelay: 10000, // Send a keep-alive packet every 10 seconds
+
 });
 
-// Connect to the MySQL database
-connection.connect((err) => {
+// Test the connection pool
+pool.getConnection((err, connection) => {
   if (err) {
     console.error('Error connecting to MySQL:', err.stack);
     return;
   }
-  console.log('Connected to MySQL');
+  console.log('Connected to MySQL using connection pool');
+  connection.release(); // Release the connection back to the pool
 });
+
+// Export the pool for use in other modules
+module.exports = pool;
 
 // Set up storage for multer
 const storage = multer.diskStorage({
@@ -342,7 +352,7 @@ app.post('/api/addStudent', upload.single('photo'), async (req, res) => {
     firstName, lastName, gender, dob, Roll, bloodGroup, religion, email, Class, section, Admission, phoneNumber, shortBio, photoPath,
   ];
 
-  connection.query(query, values, (err, result) => {
+  pool.query(query, values, (err, result) => {
     if (err) {
       console.error('Error adding student:', err);
       return res.status(500).json({ message: 'Error adding student' });
@@ -357,7 +367,7 @@ app.get('/api/getStudents', async (req, res) => {
     const query = `
       SELECT id, CONCAT(firstName, ' ', lastName) AS name, Roll, gender, Class, section, admission, phoneNumber, email, photo FROM students
     `;
-    connection.query(query, (err, result) => {
+    pool.query(query, (err, result) => {
       if (err) {
         console.error('Error fetching students:', err);
         return res.status(500).json({ message: 'Error fetching students.' });
@@ -386,7 +396,7 @@ app.put('/api/updateStudent/:id', upload.single('photo'), async (req, res) => {
   const photoPath = req.file ? req.file.path : null;
 
   // Fetch existing student record to keep non-updated values
-  connection.query(`SELECT * FROM students WHERE id = ?`, [id], (err, rows) => {
+  pool.query(`SELECT * FROM students WHERE id = ?`, [id], (err, rows) => {
     if (err) {
       console.error('Error fetching student:', err);
       return res.status(500).json({ message: 'Error fetching student data' });
@@ -429,7 +439,7 @@ app.put('/api/updateStudent/:id', upload.single('photo'), async (req, res) => {
       updatedStudent.shortBio, updatedStudent.photo, id
     ];
 
-    connection.query(query, values, (err, result) => {
+    pool.query(query, values, (err, result) => {
       if (err) {
         console.error('Error updating student:', err);
         return res.status(500).json({ message: 'Database error' });
@@ -452,7 +462,7 @@ app.delete('/api/deleteStudent/:id', async (req, res) => {
 
   const query = `DELETE FROM students WHERE id = ?`;
 
-  connection.query(query, [id], (err, result) => {
+  pool.query(query, [id], (err, result) => {
     if (err) {
       console.error('Error deleting student:', err);
       return res.status(500).json({ message: 'Database error: ' + err.message });
@@ -484,7 +494,7 @@ app.post('/api/addParent', upload.single('photo'), async (req, res) => {
     firstName, lastName, gender, occupation, idNumber, bloodGroup, religion, email, phoneNumber, address, shortBio, photoPath, numChildren,
   ];
 
-  connection.query(query, values, (err, result) => {
+  pool.query(query, values, (err, result) => {
     if (err) {
       console.error('Error adding parent:', err);
       return res.status(500).json({ message: 'Error adding parent' });
@@ -500,7 +510,7 @@ app.get('/api/getParents', async (req, res) => {
       SELECT idNumber, CONCAT(firstName, ' ', lastName) AS name, occupation, phoneNumber, email, gender, photo,numChildren 
       FROM parents
     `;
-    connection.query(query, (err, result) => {
+    pool.query(query, (err, result) => {
       if (err) {
         console.error('Error fetching parents:', err);
         return res.status(500).json({ message: 'Error fetching parents.' });
@@ -884,7 +894,7 @@ app.post("/api/addRoutine", async (req, res) => {
     const values = [day, Class, Subject, section, teacher, time, date, subjectType, Code];
 
     // Use the connection object to query the database
-    connection.query(query, values, (err, result) => {
+    pool.query(query, values, (err, result) => {
       if (err) {
         console.error("Error adding routine:", err);
         return res.status(500).json({ message: "Error adding routine" });
@@ -903,7 +913,7 @@ app.get("/api/getRoutines", async (req, res) => {
     const query = "SELECT * FROM class_routines";
 
     // Use the connection object to query the database
-    connection.query(query, (err, result) => {
+    pool.query(query, (err, result) => {
       if (err) {
         console.error("Error fetching routines:", err);
         return res.status(500).json({ message: "Error fetching routines" });
@@ -924,7 +934,7 @@ app.delete("/api/deleteRoutine/:id", (req, res) => {
     const query = "DELETE FROM class_routines WHERE id = ?";
 
     // Use the connection object to query the database
-    connection.query(query, [id], (err, result) => {
+    pool.query(query, [id], (err, result) => {
       if (err) {
         console.error("Error deleting routine:", err);
         return res.status(500).json({ message: "Error deleting routine" });
@@ -984,7 +994,7 @@ app.get("/api/getBooks", async (req, res) => {
     const query = "SELECT * FROM books";
 
     // Use the connection object to query the database
-    connection.query(query, (err, result) => {
+    pool.query(query, (err, result) => {
       if (err) {
         console.error("Error fetching books:", err);
         return res.status(500).json({ message: "Error fetching routines" });
@@ -1029,7 +1039,7 @@ app.get("/api/getSubjects", async (req, res) => {
     const query = "SELECT * FROM subjects";
 
     // Use the connection object to query the database
-    connection.query(query, (err, result) => {
+    pool.query(query, (err, result) => {
       if (err) {
         console.error("Error fetching Subjects:", err);
         return res.status(500).json({ message: "Error fetching Subjects" });
@@ -1056,7 +1066,7 @@ app.post("/api/deleteSubjects", async (req, res) => {
     const query = `DELETE FROM Subjects WHERE id IN (?)`;
 
     // Execute the query
-    connection.query(query, [ids], (err, result) => {
+    pool.query(query, [ids], (err, result) => {
       if (err) {
         console.error("Error deleting subjects:", err);
         return res.status(500).json({ message: "Error deleting subjects" });
@@ -1185,7 +1195,7 @@ app.post("/api/addusers", (req, res) => {
   ];
 
   // Directly execute the query
-  connection.query(query, values, (err, result) => {
+  pool.query(query, values, (err, result) => {
     if (err) {
       console.error("Error adding user:", err);
       res.status(500).json({ message: "Error adding user" });
@@ -1201,7 +1211,7 @@ app.get("/api/getusers", async (req, res) => {
     const query = "SELECT * FROM users"; // Query to fetch all users
 
     // Use the connection object to query the database
-    connection.query(query, (err, result) => {
+    pool.query(query, (err, result) => {
       if (err) {
         console.error("Error fetching users:", err);
         return res.status(500).json({ message: "Error fetching users" });
@@ -1290,7 +1300,7 @@ app.post('/api/sendMessage', async (req, res) => {
     const values = [title, recipient, message];
 
     // Execute the query to insert the message
-    connection.execute(query, values, (err, result) => {
+    pool.execute(query, values, (err, result) => {
       if (err) {
         console.error('Error sending message:', err);
         return res.status(500).json({ message: 'Error sending message' });
@@ -1312,7 +1322,7 @@ app.get('/api/getMessages', async (req, res) => {
     const query = 'SELECT * FROM messages';
 
     // Execute the query to fetch data from the database
-    connection.query(query, (err, results) => {
+    pool.query(query, (err, results) => {
       if (err) {
         console.error('Error fetching messages:', err);
         return res.status(500).json({ message: 'Error fetching messages' });
@@ -1342,7 +1352,7 @@ app.post('/api/addFee', async (req, res) => {
     const values = [studentName, classDiv, parentName, feeAmount, totalFeeReceived, feeOutstanding];
 
     // Execute the query
-    connection.execute(query, values, (err, result) => {
+    pool.execute(query, values, (err, result) => {
       if (err) {
         console.error('Error adding fee:', err);
         return res.status(500).json({ message: 'Error adding fee' });
@@ -1362,7 +1372,7 @@ app.get('/api/getFees', async (req, res) => {
     // SQL query to fetch all fees from the database
     const query = 'SELECT * FROM fees';
 
-    connection.query(query, (err, result) => {
+    pool.query(query, (err, result) => {
       if (err) {
         console.error('Error fetching fees:', err);
         return res.status(500).json({ message: 'Error fetching fees' });
@@ -1405,7 +1415,7 @@ app.post('/api/leave', upload.array('supportingDocs'), async (req, res) => {
   ];
 
   try {
-    const [result] = await connection.promise().query(query, values);
+    const [result] = await pool.promise().query(query, values);
     res.status(200).json({ message: 'Leave request submitted successfully!' });
   } catch (err) {
     console.error('Error submitting leave request:', err);
@@ -1419,7 +1429,7 @@ app.get('/api/leaveRequests', async (req, res) => {
   const query = 'SELECT * FROM leave_requests';
 
   try {
-    const [rows] = await connection.promise().query(query);
+    const [rows] = await pool.promise().query(query);
     res.status(200).json({ data: rows });
   } catch (error) {
     console.error('Error fetching leave requests:', error);
@@ -1439,7 +1449,7 @@ app.patch('/api/leave/:id', async (req, res) => {
   const query = 'UPDATE leave_requests SET status = ? WHERE id = ?';
 
   try {
-    const [result] = await connection.promise().query(query, [status, id]);
+    const [result] = await pool.promise().query(query, [status, id]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Leave request not found.' });
@@ -1475,7 +1485,7 @@ app.put("/api/editParent/:id", async (req, res) => {
       WHERE id = ?
     `;
 
-    connection.query(
+    pool.query(
       query,
       [name, gender, occupation, children, phone, email, parentId],
       (err, result) => {
@@ -1506,7 +1516,7 @@ app.delete("/api/deleteParent/:id", async (req, res) => {
   try {
     const query = `DELETE FROM Parents WHERE id = ?`;
 
-    connection.query(query, [parentId], (err, result) => {
+    pool.query(query, [parentId], (err, result) => {
       if (err) {
         console.error("Error deleting parent:", err);
         return res.status(500).json({ message: "Error deleting parent" });
@@ -1529,7 +1539,7 @@ app.delete("/api/deleteParent/:id", async (req, res) => {
 app.get('/api/getClassesAndSections', (req, res) => {
   const query = `SELECT DISTINCT Class, section FROM students`;
 
-  connection.query(query, (error, results) => {
+  pool.query(query, (error, results) => {
     if (error) {
       console.error('❌ Error fetching classes and sections:', error);
       return res.status(500).json({ success: false, message: 'Server error fetching classes' });
@@ -1564,10 +1574,10 @@ app.post('/api/addAttendance', async (req, res) => {
   }
 
   try {
-    // Convert the connection.query to Promise
+    // Convert the pool.query to Promise
     const query = (sql, values) => {
       return new Promise((resolve, reject) => {
-        connection.query(sql, values, (error, results) => {
+        pool.query(sql, values, (error, results) => {
           if (error) reject(error);
           else resolve(results);
         });
@@ -1667,7 +1677,7 @@ app.post('/api/addAttendance', async (req, res) => {
 
 // ✅ GET: Fetch attendance records
 app.get('/api/getAttendance', (req, res) => {
-  connection.query('SELECT * FROM attendance', (error, results) => {
+  pool.query('SELECT * FROM attendance', (error, results) => {
     if (error) {
       console.error('❌ Error fetching attendance records:', error);
       return res.status(500).json({ success: false, message: 'Server error fetching attendance records' });
@@ -1696,7 +1706,7 @@ app.get('/api/students', (req, res) => {
   LEFT JOIN attendance a ON s.Roll = a.Roll AND a.attendanceDate = ?
   WHERE s.Class = ? AND s.section = ?
 `;
-connection.query(query, [date, className, section], (error, results) => {
+pool.query(query, [date, className, section], (error, results) => {
     if (error) {
       console.error('❌ Error fetching students:', error);
       return res.status(500).json({ success: false, message: 'Server error fetching students' });
@@ -1731,7 +1741,7 @@ app.get('/api/getTeacherAttendance', (req, res) => {
       AND ta.attendanceDate = ?
   `;
 
-  connection.query(query, [date], (error, results) => {
+  pool.query(query, [date], (error, results) => {
     if (error) {
       console.error('❌ Error fetching teacher attendance records:', error);
       return res.status(500).json({ success: false, message: 'Server error fetching teacher attendance records' });
@@ -1763,7 +1773,7 @@ app.post('/api/markTeacherAttendance', (req, res) => {
   `;
 
   // Execute the query
-  connection.query(query, [employeeId, attendanceDate, attendanceStatus, attendanceStatus], (error, results) => {
+  pool.query(query, [employeeId, attendanceDate, attendanceStatus, attendanceStatus], (error, results) => {
     if (error) {
       console.error('❌ Error marking teacher attendance:', error);
       return res.status(500).json({ success: false, message: 'Server error marking teacher attendance' });
