@@ -124,6 +124,7 @@ app.post('/api/signup', async (req, res) => {
 });
 
 // Sample route for user login (Using JWT for authentication)
+// Sample route for user login (Using JWT for authentication)
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
 
@@ -140,102 +141,102 @@ app.post('/api/login', async (req, res) => {
     );
 
     if (!user) {// Sample route for user signup
-app.post('/api/signup', async (req, res) => {
-  const { username, email, password, role } = req.body;
+      app.post('/api/signup', async (req, res) => {
+        const { username, email, password, role } = req.body;
 
-  // Validate username's first character
-  if (!isValidUsername(username)) {
-    return res.status(400).json({ message: 'Username must start with A (Admin), P (Parent), T (Teacher), or S (Student)' });
-  }
+        // Validate username's first character
+        if (!isValidUsername(username)) {
+          return res.status(400).json({ message: 'Username must start with A (Admin), P (Parent), T (Teacher), or S (Student)' });
+        }
 
-  // Generate the initial based on the role
-  let userInitial = '';
-  switch (role) {
-    case 'admin':
-      userInitial = 'A';
-      break;
-    case 'student':
-      userInitial = 'S';
-      break;
-    case 'teacher':
-      userInitial = 'T';
-      break;
-    case 'parent':
-      userInitial = 'P';
-      break;
-    default:
-      userInitial = 'U'; // Default to 'U' if role is not recognized
-  }
+        // Generate the initial based on the role
+        let userInitial = '';
+        switch (role) {
+          case 'admin':
+            userInitial = 'A';
+            break;
+          case 'student':
+            userInitial = 'S';
+            break;
+          case 'teacher':
+            userInitial = 'T';
+            break;
+          case 'parent':
+            userInitial = 'P';
+            break;
+          default:
+            userInitial = 'U'; // Default to 'U' if role is not recognized
+        }
 
-  try {
-    const existingUser = await executeQuery.executeQuery(
-      'SELECT * FROM login WHERE username = ? OR email = ?',
-      [username, email]
-    );
+        try {
+          const existingUser = await executeQuery.executeQuery(
+            'SELECT * FROM login WHERE username = ? OR email = ?',
+            [username, email]
+          );
 
-    if (existingUser.length > 0) {
-      return res.status(400).json({ message: 'User already exists' });
-    }
+          if (existingUser.length > 0) {
+            return res.status(400).json({ message: 'User already exists' });
+          }
 
-    // Store the plain password directly in the database (not hashed)
-    const plainPassword = password;
+          // Store the plain password directly in the database (not hashed)
+          const plainPassword = password;
 
-    // Insert the new user into the database with the plain password and the initial
-    await executeQuery.executeQuery(
-      'INSERT INTO login (username, email, password, role, user_initial) VALUES (?, ?, ?, ?, ?)',
-      [username, email, plainPassword, role, userInitial]
-    );
+          // Insert the new user into the database with the plain password and the initial
+          await executeQuery.executeQuery(
+            'INSERT INTO login (username, email, password, role, user_initial) VALUES (?, ?, ?, ?, ?)',
+            [username, email, plainPassword, role, userInitial]
+          );
 
-    res.status(201).json({ message: 'User created successfully' });
-  } catch (err) {
-    console.error('Database error:', err);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
+          res.status(201).json({ message: 'User created successfully' });
+        } catch (err) {
+          console.error('Database error:', err);
+          res.status(500).json({ message: 'Internal server error' });
+        }
+      });
 
-// Sample route for user login
-app.post('/api/login', async (req, res) => {
-  const { username, password } = req.body;
+      // Sample route for user login
+      app.post('/api/login', async (req, res) => {
+        const { username, password } = req.body;
 
-  // Validate username's first character
-  if (!isValidUsername(username)) {
-    return res.status(400).json({ message: 'Username must start with A (Admin), P (Parent), T (Teacher), or S (Student)' });
-  }
+        // Validate username's first character
+        if (!isValidUsername(username)) {
+          return res.status(400).json({ message: 'Username must start with A (Admin), P (Parent), T (Teacher), or S (Student)' });
+        }
 
-  try {
-    // Check if the user exists in the database
-    const [user] = await executeQuery.executeQuery(
-      'SELECT * FROM login WHERE username = ?',
-      [username]
-    );
+        try {
+          // Check if the user exists in the database
+          const [user] = await executeQuery.executeQuery(
+            'SELECT * FROM login WHERE username = ?',
+            [username]
+          );
 
-    if (!user) {
-      return res.status(400).json({ message: 'Invalid username or password' });
-    }
+          if (!user) {
+            return res.status(400).json({ message: 'Invalid username or password' });
+          }
 
-    // Compare the entered password with the plain password stored in the database
-    if (password !== user.password) {
-      return res.status(400).json({ message: 'Invalid username or password' });
-    }
+          // Compare the entered password with the plain password stored in the database
+          if (password !== user.password) {
+            return res.status(400).json({ message: 'Invalid username or password' });
+          }
 
-    // Generate a JWT token
-    const token = jwt.sign(
-      { userId: user.id, username: user.username, role: user.role, userInitial: user.user_initial },
-      'your_jwt_secret_key',
-      { expiresIn: '1h' }
-    );
+          // Generate a JWT token
+          const token = jwt.sign(
+            { userId: user.id, username: user.username, role: user.role, userInitial: user.user_initial },
+            'your_jwt_secret_key',
+            { expiresIn: '1h' }
+          );
 
-    res.status(200).json({
-      message: 'Login successful',
-      token,
-      role: user.role,
-      userInitial: user.user_initial,
-    });
-  } catch (err) {
-    console.error('Database error:', err);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
+          res.status(200).json({
+            message: 'Login successful',
+            token,
+            role: user.role,
+            userInitial: user.user_initial,
+          });
+        } catch (err) {
+          console.error('Database error:', err);
+          res.status(500).json({ message: 'Internal server error' });
+        }
+      });
 
       return res.status(400).json({ message: 'Invalid username or password' });
     }
@@ -1124,6 +1125,65 @@ app.get('/api/getClasses', async (req, res) => {
 
 
 // POST route to add a new user
+// app.post("/api/addusers", (req, res) => {
+//   console.log(req.body, "Received user data");
+
+//   const {
+//     firstName,
+//     lastName,
+//     userType,
+//     gender,
+//     fatherName,
+//     motherName,
+//     dateOfBirth,
+//     religion,
+//     joiningDate,
+//     email,
+//     subject,
+//     class: className,
+//     section,
+//     idNo,
+//     phone,
+//     address,
+//     username,
+//     password,
+//   } = req.body;
+
+//   // SQL query to insert new user
+//   const query = `
+//     INSERT INTO users (firstName, lastName, userType, gender, fatherName, motherName, dateOfBirth, religion, joiningDate, email, subject, class, section, idNo, phone, address)
+//     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+//   `;
+//   const values = [
+//     firstName,
+//     lastName,
+//     userType,
+//     gender,
+//     fatherName,
+//     motherName,
+//     dateOfBirth,
+//     religion,
+//     joiningDate,
+//     email,
+//     subject,
+//     className,
+//     section,
+//     idNo,
+//     phone,
+//     address,
+//   ];
+
+//   // Directly execute the query
+//   pool.query(query, values, (err, result) => {
+//     if (err) {
+//       console.error("Error adding user:", err);
+//       res.status(500).json({ message: "Error adding user" });
+//     } else {
+//       res.status(200).json({ message: "User added successfully" });
+//     }
+//   });
+// });
+
 app.post("/api/addusers", (req, res) => {
   console.log(req.body, "Received user data");
 
@@ -1144,47 +1204,137 @@ app.post("/api/addusers", (req, res) => {
     idNo,
     phone,
     address,
+    username,
+    password,
   } = req.body;
 
-  // SQL query to insert new user
-  const query = `
-    INSERT INTO users (firstName, lastName, userType, gender, fatherName, motherName, dateOfBirth, religion, joiningDate, email, subject, class, section, idNo, phone, address)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
-  const values = [
-    firstName,
-    lastName,
-    userType,
-    gender,
-    fatherName,
-    motherName,
-    dateOfBirth,
-    religion,
-    joiningDate,
-    email,
-    subject,
-    className,
-    section,
-    idNo,
-    phone,
-    address,
-  ];
-
-  // Directly execute the query
-  pool.query(query, values, (err, result) => {
+  // Start a database transaction
+  pool.getConnection((err, connection) => {
     if (err) {
-      console.error("Error adding user:", err);
-      res.status(500).json({ message: "Error adding user" });
-    } else {
-      res.status(200).json({ message: "User added successfully" });
+      console.error("Error getting database connection:", err);
+      return res.status(500).json({ message: "Database connection error" });
     }
+
+    // Begin the transaction
+    connection.beginTransaction((err) => {
+      if (err) {
+        connection.release();
+        console.error("Error starting transaction:", err);
+        return res.status(500).json({ message: "Error starting transaction" });
+      }
+
+      // SQL query to insert new user into the `users` table
+      const userQuery = `
+        INSERT INTO users (firstName, lastName, userType, gender, fatherName, motherName, dateOfBirth, religion, joiningDate, email, subject, class, section, idNo, phone, address)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+      const userValues = [
+        firstName,
+        lastName,
+        userType,
+        gender,
+        fatherName,
+        motherName,
+        dateOfBirth,
+        religion,
+        joiningDate,
+        email,
+        subject,
+        className,
+        section,
+        idNo,
+        phone,
+        address,
+      ];
+
+      // Execute the `users` table insert
+      connection.query(userQuery, userValues, (err, userResult) => {
+        if (err) {
+          return connection.rollback(() => {
+            connection.release();
+            console.error("Error adding user:", err);
+            res.status(500).json({ message: "Error adding user" });
+          });
+        }
+
+        // SQL query to insert login details into the `login` table
+        const loginQuery = `
+          INSERT INTO login (username, email, password, phone_number, role, user_initial)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `;
+        const loginValues = [
+          username,
+          email,
+          password, // Ensure you hash the password before storing it in production
+          phone,
+          userType,
+          userType.charAt(0), // Use the first letter of the first name as the initial
+        ];
+
+        // Execute the `login` table insert
+        connection.query(loginQuery, loginValues, (err, loginResult) => {
+          if (err) {
+            return connection.rollback(() => {
+              connection.release();
+              console.error("Error adding login details:", err);
+              res.status(500).json({ message: "Error adding login details" });
+            });
+          }
+
+          // Commit the transaction if both inserts are successful
+          connection.commit((err) => {
+            if (err) {
+              return connection.rollback(() => {
+                connection.release();
+                console.error("Error committing transaction:", err);
+                res.status(500).json({ message: "Error committing transaction" });
+              });
+            }
+
+            connection.release();
+            res.status(200).json({ message: "User and login details added successfully" });
+          });
+        });
+      });
+    });
   });
 });
 
 // GET route to fetch all users
+// app.get("/api/getusers", async (req, res) => {
+//   try {
+//     const query = "SELECT * FROM users"; // Query to fetch all users
+
+//     // Use the connection object to query the database
+//     pool.query(query, (err, result) => {
+//       if (err) {
+//         console.error("Error fetching users:", err);
+//         return res.status(500).json({ message: "Error fetching users" });
+//       }
+//       res.status(200).json(result); // Send the users list as a response
+//     });
+//   } catch (error) {
+//     console.error("Error fetching users:", error);
+//     res.status(500).json({ message: "Error fetching users" });
+//   }
+// });
+
+// GET route to fetch all users
 app.get("/api/getusers", async (req, res) => {
   try {
-    const query = "SELECT * FROM users"; // Query to fetch all users
+    // Query to fetch all users with their corresponding login details
+    const query = `
+      SELECT 
+        users.*, 
+        login.username, 
+        login.password 
+      FROM 
+        users 
+      INNER JOIN 
+        login 
+      ON 
+        users.email = login.email
+    `;
 
     // Use the connection object to query the database
     pool.query(query, (err, result) => {
