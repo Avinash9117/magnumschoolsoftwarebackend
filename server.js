@@ -291,7 +291,6 @@ app.get('/api/protected', verifyToken, (req, res) => {
 
 // -----------------------------------------------------------
 // Endpoint to add teacher data
-// Endpoint to add a new teacher
 app.post('/api/addTeacher', upload.single('photo'), async (req, res) => {
   const { firstName, lastName, gender, dob, employeeId, bloodGroup, religion, email, phoneNumber, address, classname, section, shortBio } = req.body;
 
@@ -318,7 +317,7 @@ app.post('/api/addTeacher', upload.single('photo'), async (req, res) => {
 // Endpoint to get all teachers with correct photo URLs
 app.get('/api/getTeachers', async (req, res) => {
   try {
-    const query = 'SELECT employeeId, CONCAT(firstName,  lastName) AS name, gender, classname, section, address, phoneNumber, email, photo FROM teachers';
+    const query = 'SELECT employeeId, CONCAT(firstName, " ",  lastName) AS name, gender, classname, section, address, phoneNumber, email, photo FROM teachers';
     const teachers = await executeQuery.executeQuery(query);
 
     res.status(200).json({ teachers: teachers });
@@ -327,6 +326,121 @@ app.get('/api/getTeachers', async (req, res) => {
     res.status(500).json({ message: 'Error fetching teachers.' });
   }
 });
+
+// Edit Teacher - PUT endpoint
+app.put('/api/editTeacher/:employeeId', upload.single('photo'), async (req, res) => {
+  const { employeeId } = req.params;
+  const { firstName, lastName, gender, dob, bloodGroup, religion, email, 
+          phoneNumber, address, classname, section, shortBio } = req.body;
+
+  try {
+    // Get existing photo path if no new file uploaded
+    const [existingTeacher] = await executeQuery.executeQuery(
+      'SELECT photo FROM teachers WHERE employeeId = ?', 
+      [employeeId]
+    );
+
+    const photoPath = req.file ? req.file.path : existingTeacher.photo;
+
+    const query = `
+      UPDATE teachers SET
+        firstName = ?,
+        lastName = ?,
+        gender = ?,
+        dob = ?,
+        bloodGroup = ?,
+        religion = ?,
+        email = ?,
+        phoneNumber = ?,
+        address = ?,
+        classname = ?,
+        section = ?,
+        shortBio = ?,
+        photo = ?
+      WHERE employeeId = ?
+    `;
+
+    const values = [
+      firstName, lastName, gender, dob, bloodGroup, religion, email,
+      phoneNumber, address, classname, section, shortBio, photoPath, employeeId
+    ];
+
+    await executeQuery.executeQuery(query, values);
+    res.status(200).json({ message: 'Teacher updated successfully!' });
+
+  } catch (error) {
+    console.error('Error updating teacher:', error);
+    res.status(500).json({ message: 'Error updating teacher' });
+  }
+});
+
+// Delete Teacher(s) - DELETE endpoint
+app.delete('/api/deleteTeachers', async (req, res) => {
+  const { employeeIds } = req.body;
+
+  if (!employeeIds || employeeIds.length === 0) {
+    return res.status(400).json({ message: 'No teachers selected for deletion' });
+  }
+
+  try {
+    const query = `
+      DELETE FROM teachers 
+      WHERE employeeId IN (${employeeIds.map(() => '?').join(',')})
+    `;
+    
+    await executeQuery.executeQuery(query, employeeIds);
+    res.status(200).json({ message: 'Teacher(s) deleted successfully' });
+
+  } catch (error) {
+    console.error('Error deleting teachers:', error);
+    res.status(500).json({ message: 'Error deleting teachers' });
+  }
+});
+
+
+// API to fetch teachers with salary details
+// API to fetch teachers with salary details
+// app.get('/api/getTeachers', async (req, res) => {
+//   try {
+//     const query = `
+//       SELECT t.employeeId, CONCAT(t.firstName, ' ', t.lastName) AS name, 
+//              'Teacher' AS role, -- Hardcoded role for now
+//              t.phoneNumber, t.photo, 
+//              p.month, p.year, p.status, p.salary, p.deductions, p.netSalary
+//       FROM teachers t
+//       LEFT JOIN payslips p ON t.employeeId = p.employeeId
+//     `;
+//     pool.query(query, (err, results) => {
+//       if (err) {
+//         console.error('Error executing query:', err);
+//         return res.status(500).json({ message: 'Error fetching teachers.' });
+//       }
+
+//       // Add random salary details if not already present
+//       const teachersWithSalary = results.map(teacher => {
+//         if (!teacher.salary) {
+//           const salary = Math.floor(Math.random() * 50000) + 30000; // Random salary between 30,000 and 80,000
+//           const deductions = Math.floor(salary * 0.1); // 10% deductions
+//           const netSalary = salary - deductions;
+
+//           return {
+//             ...teacher,
+//             salary: salary,
+//             deductions: deductions,
+//             netSalary: netSalary,
+//             status: 'Unpaid'
+//           };
+//         }
+//         return teacher;
+//       });
+
+//       res.status(200).json({ teachers: teachersWithSalary });
+//     });
+//   } catch (error) {
+//     console.error('Error fetching teachers:', error);
+//     res.status(500).json({ message: 'Error fetching teachers.' });
+//   }
+// });
 
 
 // Endpoint to add student data
@@ -662,6 +776,46 @@ app.get('/api/getTransportList', async (req, res) => {
     res.status(500).json({ message: 'Error fetching transport list' });
   }
 });
+
+// PUT route to edit transport data
+app.put('/api/editTransport/:id', async (req, res) => {
+  const { id } = req.params;
+  const { routeName, vehicleNumber, driverName, licenseNumber, phoneNumber } = req.body;
+
+  try {
+    const query = `
+      UPDATE transport 
+      SET routeName = ?, vehicleNumber = ?, driverName = ?, licenseNumber = ?, phoneNumber = ?
+      WHERE id = ?
+    `;
+    const values = [routeName, vehicleNumber, driverName, licenseNumber, phoneNumber, id];
+
+    await executeQuery.executeQuery(query, values);
+    res.status(200).json({ message: 'Transport updated successfully' });
+  } catch (error) {
+    console.error('Error updating transport:', error);
+    res.status(500).json({ message: 'Error updating transport' });
+  }
+});
+
+// DELETE route to remove transport data
+app.delete('/api/deleteTransport', async (req, res) => {
+  const { ids } = req.body;
+
+  try {
+    const query = `
+      DELETE FROM transport 
+      WHERE id IN (${ids.map(() => '?').join(',')})
+    `;
+    await executeQuery.executeQuery(query, ids);
+    
+    res.status(200).json({ message: 'Transport(s) deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting transport:', error);
+    res.status(500).json({ message: 'Error deleting transport' });
+  }
+});
+
 // ---------------------------------------------------------
 // POST route to add class routine
 app.post('/api/addClassRoutine', async (req, res) => {
@@ -813,6 +967,41 @@ app.get("/api/getRooms", async (req, res) => {
   }
 });
 
+// Edit Room Endpoint
+app.put("/api/editRoom/:id", async (req, res) => {
+  const { id } = req.params;
+  const { hostel, roomNo, roomtype, beds, cost } = req.body;
+
+  try {
+    const query = `
+      UPDATE rooms 
+      SET hostel = ?, roomNo = ?, roomtype = ?, beds = ?, cost = ?
+      WHERE id = ?
+    `;
+    const values = [hostel, roomNo, roomtype, beds, cost, id];
+
+    await executeQuery.executeQuery(query, values);
+    res.status(200).json({ message: "Room updated successfully" });
+  } catch (error) {
+    console.error("Error updating room:", error);
+    res.status(500).json({ message: "Error updating room" });
+  }
+});
+
+// Delete Room Endpoint
+app.delete("/api/deleteRoom/:id", async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const query = `DELETE FROM rooms WHERE id = ?`;
+    await executeQuery.executeQuery(query, [id]);
+    res.status(200).json({ message: "Room deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting room:", error);
+    res.status(500).json({ message: "Error deleting room" });
+  }
+});
+
 
 
 // Add new expense (POST)
@@ -850,6 +1039,56 @@ app.get('/api/getExpenses', async (req, res) => {
   }
 });
 
+// Edit Expense - PUT endpoint
+app.put("/api/editExpenses/:id", async (req, res) => {
+  const { id } = req.params;
+  const { name, idNo, expenseType, amount, phone, email, status, date } = req.body;
+
+  try {
+    const query = `
+      UPDATE expenses 
+      SET 
+        name = ?,
+        idNo = ?,
+        expenseType = ?,
+        amount = ?,
+        phone = ?,
+        email = ?,
+        status = ?,
+        date = ?
+      WHERE id = ?
+    `;
+    const values = [name, idNo, expenseType, amount, phone, email, status, date, id];
+
+    await executeQuery.executeQuery(query, values);
+    res.status(200).json({ message: "Expense updated successfully" });
+  } catch (error) {
+    console.error("Error updating expense:", error);
+    res.status(500).json({ message: "Error updating expense" });
+  }
+});
+
+// Delete Expense(s) - DELETE endpoint
+app.delete("/api/deleteExpenses", async (req, res) => {
+  const { ids } = req.body;
+
+  if (!ids || ids.length === 0) {
+    return res.status(400).json({ message: "No expenses selected for deletion" });
+  }
+
+  try {
+    const query = `
+      DELETE FROM expenses 
+      WHERE id IN (${ids.map(() => '?').join(',')})
+    `;
+    await executeQuery.executeQuery(query, ids);
+    
+    res.status(200).json({ message: "Expense(s) deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting expenses:", error);
+    res.status(500).json({ message: "Error deleting expenses" });
+  }
+});
 
 
 
@@ -990,15 +1229,15 @@ app.get("/api/getBooks", async (req, res) => {
 app.post("/api/addSubject", async (req, res) => {
   console.log(req.body, "Received Subject");
 
-  const { subjectName, subjectType, selectClass, selectCode, subjectDate } = req.body;
+  const { subjectName, selectClass, subjectDate } = req.body;
 
   try {
     // Create the SQL query to insert a new subject into the Subject table
     const query = `
-      INSERT INTO Subjects (subjectName, subjectType, selectClass, selectCode, subjectDate)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO Subjects (subjectName, selectClass, subjectDate)
+      VALUES (?, ?, ?)
     `;
-    const values = [subjectName, subjectType, selectClass, selectCode, subjectDate];
+    const values = [subjectName,  selectClass, subjectDate];
 
     // Execute the query
     await executeQuery.executeQuery(query, values);
@@ -1026,6 +1265,53 @@ app.get("/api/getSubjects", async (req, res) => {
   } catch (error) {
     console.error("Error fetching Subjects:", error);
     res.status(500).json({ message: "Error fetching Subjects" });
+  }
+});
+
+// Edit Subject - PUT endpoint
+app.put("/api/editSubject/:id", async (req, res) => {
+  const { id } = req.params;
+  const { subjectName, selectClass, subjectDate } = req.body;
+
+  try {
+    const query = `
+      UPDATE Subjects 
+      SET 
+        subjectName = ?, 
+        selectClass = ?, 
+        subjectDate = ?
+      WHERE id = ?
+    `;
+    const values = [subjectName, selectClass, subjectDate, id];
+
+    await executeQuery.executeQuery(query, values);
+    res.status(200).json({ message: "Subject updated successfully" });
+  } catch (error) {
+    console.error("Error updating subject:", error);
+    res.status(500).json({ message: "Error updating subject" });
+  }
+});
+
+// Delete Subject(s) - POST endpoint
+app.post("/api/deleteSubjects", async (req, res) => {
+  const { ids } = req.body;
+
+  // Add validation for empty IDs
+  if (!ids || ids.length === 0) {
+    return res.status(400).json({ message: "No subjects selected for deletion" });
+  }
+
+  try {
+    const query = `
+      DELETE FROM Subjects 
+      WHERE id IN (${ids.map(() => "?").join(",")})
+    `;
+    await executeQuery.executeQuery(query, ids);
+    
+    res.status(200).json({ message: "Subject(s) deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting subjects:", error);
+    res.status(500).json({ message: "Error deleting subjects" });
   }
 });
 
@@ -1509,6 +1795,65 @@ app.get('/api/getFees', async (req, res) => {
   } catch (error) {
     console.error('Error in try-catch block:', error);
     res.status(500).json({ message: 'Error fetching fees' });
+  }
+});
+
+// Edit Fee - PUT endpoint
+app.put('/api/editFee/:id', async (req, res) => {
+  const { id } = req.params;
+  const { studentName, classDiv, parentName, feeAmount, totalFeeReceived, feeOutstanding } = req.body;
+
+  try {
+    const query = `
+      UPDATE fees 
+      SET 
+        studentName = ?,
+        classDiv = ?,
+        parentName = ?,
+        feeAmount = ?,
+        totalFeeReceived = ?,
+        feeOutstanding = ?
+      WHERE id = ?
+    `;
+    const values = [studentName, classDiv, parentName, feeAmount, totalFeeReceived, feeOutstanding, id];
+
+    pool.execute(query, values, (err, result) => {
+      if (err) {
+        console.error('Error updating fee:', err);
+        return res.status(500).json({ message: 'Error updating fee' });
+      }
+      res.status(200).json({ message: 'Fee updated successfully' });
+    });
+  } catch (error) {
+    console.error('Error in try-catch block:', error);
+    res.status(500).json({ message: 'Error updating fee' });
+  }
+});
+
+// Delete Fee(s) - DELETE endpoint
+app.delete('/api/deleteFees', async (req, res) => {
+  const { ids } = req.body;
+
+  if (!ids || ids.length === 0) {
+    return res.status(400).json({ message: 'No fees selected for deletion' });
+  }
+
+  try {
+    const query = `
+      DELETE FROM fees 
+      WHERE id IN (${ids.map(() => '?').join(',')})
+    `;
+    
+    pool.execute(query, ids, (err, result) => {
+      if (err) {
+        console.error('Error deleting fees:', err);
+        return res.status(500).json({ message: 'Error deleting fees' });
+      }
+      res.status(200).json({ message: 'Fee(s) deleted successfully' });
+    });
+  } catch (error) {
+    console.error('Error in try-catch block:', error);
+    res.status(500).json({ message: 'Error deleting fees' });
   }
 });
 
