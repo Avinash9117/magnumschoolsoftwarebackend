@@ -290,7 +290,7 @@ app.get('/api/protected', verifyToken, (req, res) => {
 // -----------------------------------------------------------
 
 // -----------------------------------------------------------
-// Endpoint to add teacher data
+// Endpoint to add a new teacher
 app.post('/api/addTeacher', upload.single('photo'), async (req, res) => {
   const { firstName, lastName, gender, dob, employeeId, bloodGroup, religion, email, phoneNumber, address, classname, section, shortBio } = req.body;
 
@@ -868,14 +868,14 @@ app.get('/api/getClassRoutine', async (req, res) => {
 // -----------------------------------
 // POST route to add exam schedule
 app.post('/api/addExamSchedule', async (req, res) => {
-  const { name, subject, classname, section, time, date } = req.body;
+  const { name, subject, classname, section, start_time, end_time, date } = req.body;
 
   try {
     const query = `
-      INSERT INTO exam_schedule (name, subject, classname, section, time, date)
-      VALUES (?, ?, ?, ?, ?, ?)
+      INSERT INTO exam_schedule (name, subject, classname, section, start_time, end_time, date)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
-    const values = [name, subject, classname, section, time, date];
+    const values = [name, subject, classname, section, start_time, end_time, date];
     await executeQuery.executeQuery(query, values);
 
     res.status(200).json({ message: 'Exam added successfully' });
@@ -894,6 +894,40 @@ app.get('/api/getExamList', async (req, res) => {
   } catch (error) {
     console.error('Error fetching exam list:', error);
     res.status(500).json({ message: 'Error fetching exam list' });
+  }
+});
+
+// edit exam schedule
+app.put('/api/updateExam/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, subject, classname, section, start_time, end_time, date } = req.body;
+
+  try {
+    const query = `
+      UPDATE exam_schedule 
+      SET name = ?, subject = ?, classname = ?, section = ?, start_time = ?, end_time = ?, date = ?
+      WHERE id = ?
+    `;
+    const values = [name, subject, classname, section, start_time, end_time, date, id];
+    await executeQuery.executeQuery(query, values);
+    res.status(200).json({ message: 'Exam updated successfully' });
+  } catch (error) {
+    console.error('Error updating exam:', error);
+    res.status(500).json({ message: 'Error updating exam' });
+  }
+});
+
+
+// delete examschedule
+app.delete('/api/deleteExam/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const query = 'DELETE FROM exam_schedule WHERE id = ?';
+    await executeQuery.executeQuery(query, [id]);
+    res.status(200).json({ message: 'Exam deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting exam:', error);
+    res.status(500).json({ message: 'Error deleting exam' });
   }
 });
 
@@ -927,6 +961,57 @@ app.get("/api/getExamGrades", async (req, res) => {
   } catch (error) {
     console.error("Error fetching grade list:", error);
     res.status(500).json({ message: "Error fetching grade list", error: error.message }); // Send detailed error message
+  }
+});
+
+// Edit Exam Grade (PUT)
+app.put("/api/updateExamGrade", async (req, res) => {
+  const { oldGradeName, oldGradePoint, newData } = req.body;
+
+  try {
+    const query = `
+      UPDATE grades 
+      SET 
+        gradeName = ?,
+        gradePoint = ?,
+        percentFrom = ?,
+        percentUpto = ?,
+        comments = ?
+      WHERE gradeName = ? AND gradePoint = ?
+    `;
+    const values = [
+      newData.gradeName,
+      newData.gradePoint,
+      newData.percentFrom,
+      newData.percentUpto,
+      newData.comments,
+      oldGradeName,
+      oldGradePoint
+    ];
+    
+    await executeQuery.executeQuery(query, values);
+    res.status(200).json({ message: 'Grade updated successfully' });
+  } catch (error) {
+    console.error('Error updating grade:', error);
+    res.status(500).json({ message: 'Error updating grade' });
+  }
+});
+
+// Delete Exam Grade (DELETE)
+app.delete("/api/deleteExamGrade", async (req, res) => {
+  const { gradeName, gradePoint } = req.body;
+
+  try {
+    const query = `
+      DELETE FROM grades 
+      WHERE gradeName = ? AND gradePoint = ?
+    `;
+    await executeQuery.executeQuery(query, [gradeName, gradePoint]);
+    
+    res.status(200).json({ message: 'Grade deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting grade:', error);
+    res.status(500).json({ message: 'Error deleting grade' });
   }
 });
 
@@ -1220,6 +1305,91 @@ app.get("/api/getBooks", async (req, res) => {
   } catch (error) {
     console.error("Error fetching routines:", error);
     res.status(500).json({ message: "Error fetching books" });
+  }
+});
+
+// Edit Book
+app.put("/api/editBook/:id", upload.single("image"), async (req, res) => {
+  const bookId = req.params.id;
+  const {
+    title,
+    bookNumber,
+    publisher,
+    author,
+    rackNo,
+    quantity,
+    available,
+    description,
+  } = req.body;
+
+  try {
+    // Check if book exists
+    const checkQuery = "SELECT * FROM books WHERE id = ?";
+    const [existingBook] = await executeQuery.executeQuery(checkQuery, [bookId]);
+
+    if (!existingBook) {
+      return res.status(404).json({ message: "Book not found" });
+    }
+
+    // Use existing image if no new file uploaded
+    const image = req.file ? req.file.path : existingBook.image;
+
+    const updateQuery = `
+      UPDATE books 
+      SET 
+        title = ?,
+        bookNumber = ?,
+        publisher = ?,
+        author = ?,
+        rackNo = ?,
+        quantity = ?,
+        available = ?,
+        description = ?,
+        image = ?
+      WHERE id = ?
+    `;
+
+    const values = [
+      title,
+      bookNumber,
+      publisher,
+      author,
+      rackNo,
+      quantity,
+      available,
+      description,
+      image,
+      bookId
+    ];
+
+    await executeQuery.executeQuery(updateQuery, values);
+    res.status(200).json({ message: "Book updated successfully" });
+  } catch (error) {
+    console.error("Error updating book:", error);
+    res.status(500).json({ message: "Error updating book" });
+  }
+});
+
+// Delete Book
+app.delete("/api/deleteBook/:id", async (req, res) => {
+  const bookId = req.params.id;
+
+  try {
+    // Check if book exists
+    const checkQuery = "SELECT * FROM books WHERE id = ?";
+    const [existingBook] = await executeQuery.executeQuery(checkQuery, [bookId]);
+
+    if (!existingBook) {
+      return res.status(404).json({ message: "Book not found" });
+    }
+
+    const deleteQuery = "DELETE FROM books WHERE id = ?";
+    await executeQuery.executeQuery(deleteQuery, [bookId]);
+    
+    res.status(200).json({ message: "Book deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting book:", error);
+    res.status(500).json({ message: "Error deleting book" });
   }
 });
 
