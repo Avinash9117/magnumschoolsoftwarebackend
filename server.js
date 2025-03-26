@@ -22,9 +22,9 @@ app.use(bodyParser.json());
 const pool = mysql.createPool({
  host: 'sql8.freesqldatabase.com',
   port: 3306,
-  user: 'sql8765906',
-  password: 'kTfPsYjDdm', // Use your MySQL password here
-  database: 'sql8765906', // Ensure the database name is correct
+  user: 'sql8769734',
+  password: '8pL5wqCvuX', // Use your MySQL password here
+  database: 'sql8769734', // Ensure the database name is correct
   waitForConnections: true, // Wait for a connection if none are available
   connectionLimit: 10, // Maximum number of connections in the pool
   queueLimit: 0, // Unlimited queue for waiting connections
