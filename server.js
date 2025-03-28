@@ -27,7 +27,7 @@ app.use(bodyParser.json());
 const pool = mysql.createPool({
   host: 'sql8.freesqldatabase.com', // Replace with your database host
   port: 3306, // Replace with your database port
-  user: '	sql8769734', // Replace with your database username
+  user: 'sql8769734', // Replace with your database username
   password: '8pL5wqCvuX', // Replace with your database password
   database: 'sql8769734', // Replace with your database name
   waitForConnections: true, // Wait for a connection if none are available
