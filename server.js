@@ -25,11 +25,11 @@ app.use(bodyParser.json());
 
 // Create a connection pool
 const pool = mysql.createPool({
-  host: 'localhost', // Replace with your database host
+  host: 'sql8.freesqldatabase.com', // Replace with your database host
   port: 3306, // Replace with your database port
-  user: 'root', // Replace with your database username
-  password: 'Avinash143@', // Replace with your database password
-  database: 'schooldb', // Replace with your database name
+  user: '	sql8769734', // Replace with your database username
+  password: '8pL5wqCvuX', // Replace with your database password
+  database: 'sql8769734', // Replace with your database name
   waitForConnections: true, // Wait for a connection if none are available
   connectionLimit: 10, // Maximum number of connections in the pool
   queueLimit: 0, // Unlimited queue for waiting connections
